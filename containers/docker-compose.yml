@@ -1,0 +1,158 @@
+# This compose file setups all the containers for the server portion of my containers
+# The services are:
+# - nginx
+# - dashy
+# - homeassistant
+# - jellyfin
+# - portainer_agent
+# - uptime_kuma
+# - postgres
+# - pi-alert
+
+
+version : "3.7"
+
+services:
+  # nginx:
+  #   image: nginx:latest
+  #   container_name: nginx
+  #   restart: unless-stopped
+  #   ports:
+  #     - 80:80
+  #     - 443:443
+  #   volumes:
+  #     - /nginx/nginx.conf:/etc/nginx/nginx.conf
+  #     - /nginx/conf.d:/etc/nginx/conf.d
+  #     - /nginx/ssl:/etc/nginx/ssl
+  #     - /nginx/www:/usr/share/nginx/html
+  #     - /nginx/logs:/var/log/nginx
+
+
+    # networks:
+    #   - home_lab_container_network
+    # depends_on:
+    #   - dashy
+    #   - homeassistant
+    #   - jellyfin
+    #   - portainer_agent
+    #   - uptime_kuma
+    #   - postgres
+    #   - pi-alert
+
+  dashy:
+    image: lissy93/dashy:latest
+    container_name: dashy
+    restart: unless-stopped
+    ports:
+      - 8080:80
+    volumes:
+      - dashy:/dashy
+    networks:
+      - home_lab_container_network
+
+  homeassistant:
+    container_name: homeassistant
+    image: "ghcr.io/home-assistant/home-assistant:stable"
+    volumes:
+      - homeassistant_config:/config
+      - /run/dbus:/run/dbus:ro
+    restart: unless-stopped
+    environment:
+      - TZ=Australia/Sydney
+    privileged: true
+    network_mode: host
+
+  jellyfin:
+    image: linuxserver/jellyfin:latest
+    container_name: jellyfin
+    restart: unless-stopped
+    ports:
+      - 8096:8096
+    volumes:
+      - jellyfin_config:/config
+      - jellyfin_cache:/cache
+      - jellyfin_media:/media
+      - jellyfin_transcode:/transcode
+    environment:
+      - PUID=1000
+      - PGID=1000
+      - TZ=Australia/Sydney
+    networks:
+      - home_lab_container_network
+
+  portainer_agent:
+    image: portainer/portainer-ce:latest
+    ports:
+      - 9443:9443
+    volumes:
+      - portainer_data:/data
+      - /var/run/docker.sock:/var/run/docker.sock
+    restart: unless-stopped
+    networks:
+      - home_lab_container_network
+
+
+  postgres:
+    image: postgres:latest
+    container_name: postgres
+    restart: unless-stopped
+    ports:
+      - 5432:5432
+    volumes:
+      - postgres:/var/lib/postgresql/data
+    environment:
+      - POSTGRES_USER=postgres
+      - POSTGRES_PASSWORD=postgres
+      - POSTGRES_DB=postgres
+    networks:
+      - home_lab_container_network
+
+  uptime_kuma:
+    image: elestio/uptime-kuma
+    container_name: uptime_kuma
+    restart: unless-stopped
+    ports:
+      - 3001:3001
+    volumes:
+      - uptime_kuma:/app/data
+    networks:
+      - home_lab_container_network
+
+  # TODO
+  # pialert:
+  #   image: jokobsk/pi.alert
+  #   ports:
+  #     - "80:20211/tcp"
+  #   environment:
+  #     - TZ=Australia/Sydney
+  #   networks:
+  #     - home_lab_container_network
+  #   restart: unless-stopped
+  #   volumes:
+  #   - pialert_db:/home/pi/pialert/db
+  #   - ./pialert/pialert.conf:/home/pi/pialert/config/pialert.conf
+  #   - ./pialert/version.conf:/home/pi/pialert/config/version.conf
+
+
+networks:
+  home_lab_container_network:
+    driver: bridge
+
+volumes:
+  nginx:
+  dashy:
+  homeassistant_config:
+  homeassistant:
+
+  jellyfin_config:
+  jellyfin_cache:
+  jellyfin_media:
+  jellyfin_transcode:
+
+  portainer_data:
+  postgres:
+  uptime_kuma:
+  pialert_db:
+
+  timezone:
+  localtime:
